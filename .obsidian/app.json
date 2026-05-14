@@ -1,0 +1,11 @@
+{
+  "useMarkdownLinks": false,
+  "newLinkFormat": "shortest",
+  "showLineNumber": true,
+  "strictLineBreaks": false,
+  "readableLineLength": true,
+  "defaultViewMode": "preview",
+  "attachmentFolderPath": "06-Resources/Attachments",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "00-Inbox"
+}
