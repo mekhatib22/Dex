@@ -1,0 +1,16 @@
+# Dex Slack Channel Monitor
+# Add Slack channel/DM links below (one per line)
+# Lines starting with # are comments
+#
+# How to get a link:
+#   1. Right-click a channel/DM in Slack
+#   2. Copy link
+#   3. Paste here
+#
+# Examples:
+# https://githubber.slack.com/archives/C01234ABCDE
+# https://githubber.slack.com/archives/D01234ABCDE  (DM)
+#
+# Add your channels below:
+https://github-grid.enterprise.slack.com/archives/C064V67DZDH
+https://github-grid.enterprise.slack.com/archives/C0AJAU05R47

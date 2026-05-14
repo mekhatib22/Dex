@@ -55,17 +55,25 @@ Read `02-Week_Priorities/Week_Priorities.md` and determine:
 >
 > You have 2 days left this week. Priority 3 needs attention."
 
-### 3.2 Calendar / Schedule
+### 3.2 Calendar + Email (via WorkIQ)
 
-Ask the user about their schedule for today, or read calendar files if available:
+Use m365-copilot-copilot_chat to pull today's calendar and email:
 
-> "What does your calendar look like today? (Paste your schedule, or tell me about your meetings)"
+**Calendar query:**
+> "What meetings does Mark Elkhatib have today? For each: time, title, attendees. Also flag any meetings added in the last 24 hours."
 
-If the user provides their schedule, analyze:
+**Email query:**
+> "Show emails from the last 24h that Mark Elkhatib needs to reply to (not automated/newsletters). Also show any emails from people Mark has meetings with today. For each: sender, subject, one-line summary."
+
+Analyze the calendar:
 - **Day type**: stacked / moderate / open
 - **Meeting count and hours**
 - **Free blocks available**
 - **Recommendation**: What kind of work fits today
+
+Surface email actions:
+- Emails needing reply (link to person pages)
+- Meeting-related email threads (add to meeting prep)
 
 ### 3.3 Meeting Intelligence
 

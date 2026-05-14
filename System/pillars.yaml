@@ -14,15 +14,50 @@
 #
 # The Work MCP uses these to categorize tasks and check balance across your work.
 
-pillars: []
-  # Will be populated during onboarding
-  # Example structure:
-  # - id: pillar_id
-  #   name: "Pillar Name"
-  #   description: "What this pillar represents"
-  #   keywords:
-  #     - keyword1
-  #     - keyword2
+pillars:
+  - id: analytics
+    name: "Analytics"
+    description: "Data analytics, Copilot metrics, enterprise insights, data warehouse queries"
+    keywords:
+      - analytics
+      - data
+      - metrics
+      - kusto
+      - trino
+      - query
+      - dashboard
+      - report
+      - MAU
+      - seats
+      - enrollment
+  - id: storytelling
+    name: "Story Telling"
+    description: "Communicating data insights through compelling narratives, presentations, and reports"
+    keywords:
+      - story
+      - narrative
+      - presentation
+      - deck
+      - report
+      - communicate
+      - stakeholder
+      - executive
+      - briefing
+      - octoverse
+  - id: opinionated_insights
+    name: "Opinionated Insights"
+    description: "Driving business and release impact through proactive, opinionated data analysis"
+    keywords:
+      - insight
+      - opinion
+      - recommendation
+      - impact
+      - release
+      - business
+      - strategy
+      - trend
+      - competitive
+      - market
 
 # Priority limits (how many active tasks per priority level)
 priority_limits:

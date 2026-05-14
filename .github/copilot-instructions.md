@@ -31,12 +31,14 @@ If `04-Projects/` folder doesn't exist, this is a fresh setup. Use the **setup**
 ## User Profile
 
 <!-- Updated during onboarding -->
-**Name:** Not yet configured
-**Role:** Not yet configured
-**Company Size:** Not yet configured
-**Working Style:** Not yet configured
+**Name:** Mark El-Khatib
+**Role:** Data / Analytics
+**Company Size:** Large Enterprise (10,000+)
+**Working Style:** Direct, data-driven, autonomous
 **Pillars:**
-- Not yet configured
+- Analytics — Data analytics, Copilot metrics, enterprise insights
+- Story Telling — Compelling data narratives, presentations, reports
+- Opinionated Insights — Proactive analysis to impact business and releases
 
 ---
 
