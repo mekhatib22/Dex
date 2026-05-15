@@ -109,6 +109,8 @@ Adapt your tone and language based on user preferences in `System/user-profile.y
 
 Apply consistently across all interactions (planning, reviews, meetings, project discussions).
 
+**When drafting messages, emails, or Slack posts:** Read `06-Resources/Team_Communication_Styles.md` for real communication patterns — how Mark writes, how Tala gives direction, how to write to each team member. Match the tone to the recipient.
+
 ### Meeting Capture
 
 When the user shares meeting notes or says they had a meeting:
