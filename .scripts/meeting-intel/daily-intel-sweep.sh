@@ -53,6 +53,82 @@ WEOF
 
 log "WorkIQ calendar/email prompts saved for processing."
 
+# ---- SESSION STORE DIGEST ----
+log "Generating session digest..."
+
+SESSION_DIGEST="$INTEL_DIR/${TODAY} - Session Digest.md"
+if [ ! -f "$SESSION_DIGEST" ]; then
+  # Query the session store for today's completed sessions
+  python3 << 'PYDIGEST'
+import sqlite3, os, json
+from datetime import datetime, timedelta
+
+db_path = os.path.expanduser("~/.copilot/session-store.db")
+if not os.path.exists(db_path):
+    print("Session store not found")
+    exit(0)
+
+conn = sqlite3.connect(db_path)
+conn.row_factory = sqlite3.Row
+today = datetime.now().strftime("%Y-%m-%d")
+yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+# Get recent sessions
+sessions = conn.execute("""
+    SELECT s.id, s.summary, s.created_at, s.cwd,
+           COUNT(DISTINCT sf.file_path) as files_touched
+    FROM sessions s
+    LEFT JOIN session_files sf ON sf.session_id = s.id
+    WHERE s.created_at >= ?
+    GROUP BY s.id
+    ORDER BY s.created_at DESC
+""", (yesterday + "T00:00:00Z",)).fetchall()
+
+if not sessions:
+    exit(0)
+
+vault = os.path.expanduser("~/Documents/Dex")
+out_path = os.path.join(vault, "00-Inbox", "Ideas", f"{today} - Session Digest.md")
+
+lines = [f"# Session Digest — {today}\n"]
+lines.append(f"\n## Sessions Analyzed: {len(sessions)}\n")
+lines.append("\n### Work Summary\n")
+
+for s in sessions:
+    summary = (s['summary'] or 'No summary')[:120]
+    files = s['files_touched']
+    ts = s['created_at'][:16].replace('T', ' ')
+    file_note = f" ({files} files)" if files > 0 else ""
+    lines.append(f"- **{ts}** — {summary}{file_note}\n")
+
+    # Get files touched
+    if files > 0:
+        file_rows = conn.execute(
+            "SELECT file_path, tool_name FROM session_files WHERE session_id = ?",
+            (s['id'],)
+        ).fetchall()
+        for f in file_rows[:5]:
+            lines.append(f"  - `{os.path.basename(f['file_path'])}` ({f['tool_name']})\n")
+
+    # Get refs (commits, PRs)
+    refs = conn.execute(
+        "SELECT ref_type, ref_value FROM session_refs WHERE session_id = ?",
+        (s['id'],)
+    ).fetchall()
+    for r in refs:
+        lines.append(f"  - {r['ref_type']}: {r['ref_value']}\n")
+
+lines.append("\n---\n")
+lines.append(f"\n*Auto-generated from {len(sessions)} sessions on {today}*\n")
+
+with open(out_path, 'w') as f:
+    f.writelines(lines)
+
+print(f"Session digest: {len(sessions)} sessions → {out_path}")
+PYDIGEST
+  log "Session digest complete."
+fi
+
 # ---- GITHUB ACTIVITY ----
 log "Fetching GitHub activity..."
 
