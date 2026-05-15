@@ -119,6 +119,28 @@ for s in sessions:
         lines.append(f"  - {r['ref_type']}: {r['ref_value']}\n")
 
 lines.append("\n---\n")
+
+# Find validated queries in recent sessions
+try:
+    validated = conn.execute("""
+        SELECT DISTINCT si.session_id, si.content
+        FROM search_index si
+        JOIN sessions s ON si.session_id = s.id
+        WHERE si.search_index MATCH '"good to go" OR "looks good" OR perfect OR validated'
+        AND si.source_type = 'turn'
+        AND s.created_at >= ?
+        LIMIT 10
+    """, (yesterday + "T00:00:00Z",)).fetchall()
+    if validated:
+        lines.append("\n### Validated Queries Detected\n\n")
+        lines.append("*Run the **query-harvester** prompt to promote these to your data-query skill.*\n\n")
+        for v in validated:
+            snippet = v['content'][:150].replace('\n', ' ')
+            lines.append(f"- Session `{v['session_id'][:8]}...` — {snippet}\n")
+        lines.append("\n")
+except:
+    pass
+
 lines.append(f"\n*Auto-generated from {len(sessions)} sessions on {today}*\n")
 
 with open(out_path, 'w') as f:
