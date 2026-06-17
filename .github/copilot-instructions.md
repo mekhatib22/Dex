@@ -186,13 +186,36 @@ Help the user capture:
 - Quick thoughts → `00-Inbox/Ideas/`
 - Tasks → surface them clearly
 
+### Slack Integration
+
+Two `gh` CLI extensions provide Slack access without MCP registration:
+
+| Tool | Use for |
+|------|---------|
+| `gh slackdump` | **Batch export** — channel/DM/thread dumps to JSON (Dex 5pm automation) |
+| `gh slack` | **Interactive** — search, read threads, send messages, raw Slack API |
+
+**Quick reference:**
+```bash
+# Search across Slack (gh slack)
+gh slack api search.messages -f "query=in:#channel-name keyword"
+gh slack api search.messages -f "query=from:@username topic"
+
+# Batch export (gh slackdump)
+gh slackdump <slack-permalink>
+gh slackdump -u --from 2026-05-01 <link>   # with user resolution + date range
+```
+
+Default team configured in `~/.config/gh/config.yml` → `extensions.slack.team: github`.
+
 ### Search & Recall
 
 When asked about something:
 1. Search the vault using grep/glob for relevant content
 2. Check person pages for context
 3. Look at recent meetings in `00-Inbox/Meetings/`
-4. Surface relevant projects from `04-Projects/`
+4. Search Slack via `gh slack api search.messages` for recent discussions
+5. Surface relevant projects from `04-Projects/`
 
 ### Learning Capture
 
@@ -314,3 +337,226 @@ flowchart LR
 ```
 
 Use `neutral` theme — works in both light and dark modes.
+<!-- >>> copilot-global-base (managed by sync.sh — do not edit inside) >>> -->
+# Unified Copilot Instructions
+
+**Purpose**: Single source of truth for agent behavior across GitHub Copilot CLI, app, and all project sessions.
+
+**Scope**: Hard limits (enforceable rules), behavioral commitments (agent-enforced in both tools), and workflow patterns.
+
+---
+
+## 🛑 Always-On Hard Stops (read first, every session)
+
+**Source of truth**: `~/.copilot/hard-stops.md` (loaded by CLI hook + App agent ritual below). When that file changes, both surfaces pick it up next session.
+
+**App session-start ritual** (CLI does this via `hooks/session-start.sh`; App agent must self-execute):
+On the first tool-calling turn:
+1. Read `~/.copilot/hard-stops.md` — deprecated tables, 50-turn cap, no-silent-retries, banner format.
+2. Read `~/.copilot/registry.md`, match cwd to a project, then read the matching `~/.copilot/progress/<project>.md` (or repo-local `.copilot/progress.md` if present).
+3. Output the context banner exactly as `hard-stops.md` specifies.
+
+Skipping any of these = violating the hard stops. The banner is non-negotiable visible proof you loaded context.
+
+---
+
+## Hard Limits (Non-Negotiable)
+
+These rules are enforced by:
+- **CLI**: `~/.copilot/hooks/guardrails.sh` (fires on every session)
+- **App**: Agent reads this file and self-enforces via instructions
+
+### 1. 50-Turn Session Hard Stop
+
+**Rule**: At turn 50, refuse all tool calls except: (a) checkpoint to session DB, (b) summary + handoff.
+
+**Enforcement**:
+- **CLI**: Hook denies tool calls at turn ≥50 with reason. User must checkpoint.
+- **App**: Agent reads this rule and refuses at turn 50.
+- **Rationale**: Sessions sprawl without scope discipline. Checkpoint forces reflection.
+
+### 2. Python Heredoc Bloat Prevention
+
+**Rule**: Python scripts >10 lines OR >2KB must be extracted to `.py` files, not embedded in bash heredocs.
+
+**Enforcement**:
+- **CLI**: Hook warns at >10 lines, escalates to strong warning at >5KB.
+- **App**: Agent avoids heredocs; writes to files first.
+- **Rationale**: Heredocs bloat `arguments_json` and ship full script through context every turn (~1/10th token waste).
+
+### 3. Web Fetch Pagination Spam Prevention
+
+**Rule**: When fetching multi-page content, curl once to disk (`curl -s <url> > /tmp/page.md`), then view locally. Don't paginate via `web_fetch`.
+
+**Enforcement**:
+- **CLI**: Hook warns at 2nd distinct `start_index`, denies at ≥3.
+- **App**: Agent batches pagination into single research sub-agent delegation.
+- **Rationale**: 6 fetches of same URL costs 6× overhead. One curl + local view = 1/6th cost.
+
+### 4. Bash-for-Native Anti-Pattern Prevention
+
+**Rule**: Don't use bash for `cat`, `head`, `tail`, `ls`, `find`, `grep`, `rg`. Use native tools: `view`, `glob`, `grep` tool.
+
+**Enforcement**:
+- **CLI**: Hook silent at 1–2 uses, warns at 3–5, strong warning at 6+.
+- **App**: Agent prefers native tool invocation.
+- **Rationale**: Native tools return structured output, don't truncate, run faster.
+
+---
+
+## Behavioral Commitments (Agent-Enforced)
+
+### Session Scope Discipline
+
+**Commit**: Each session = 1 deliverable (one query, one doc, one fix, one report).
+
+When a session feels like it's sprawling:
+1. **At turn 30**: Check session scope. If drifting, create new session for the next item.
+2. **At turn 50**: Mandatory checkpoint + handoff. Next item = fresh session.
+3. **Tool to use**: `send_session_message` to delegate to a fresh session; keep main session focused.
+
+**Why**: 6 sessions in 14 days ran 50–147 turns with zero checkpoints. Splitting by deliverable keeps context clean and forces reflection.
+
+---
+
+### Sub-Agent Delegation (Don't Do Alone)
+
+**Commit**: For tasks matching a custom agent's mission, invoke via `task` tool rather than doing manually.
+
+| Agent | Use When |
+|---|---|
+| **copilot-analytics** | Copilot seat counts, feature usage, trend queries |
+| **pptx-generator** | Slide deck creation, editing, analysis |
+| **docx-formatting** | Word document editing, formatting preservation |
+| **market-intelligence** | Competitive landscape, trending repos, signals |
+| **agentic-event-analysis** | Event/campaign impact, attendee cohort analysis |
+| **3p-agent-canonical-staging-model** | 3P agent usage, PR-level detection queries |
+| **global-expansion** | Market scoring, country expansion metrics |
+| **ghas-data-analyst** | GHAS/security data, funnel analysis |
+| **trending-repos-report** | Biweekly report generation |
+| **pptx-generator** | PowerPoint creation + editing |
+
+**Measurement**: In last 14 days, `task` tool = 1.3% of calls. Target: 8–12%.
+
+**Why**: Agents have their own context windows. Delegating keeps your session lean and parallelizes work.
+
+---
+
+### Default Model Routing
+
+**Commit**: Use lowest-tier model that solves the task. Escalate only for complex reasoning.
+
+| Tier | Models | Use For |
+|---|---|---|
+| **Fast/cheap** | `claude-haiku-4.5`, `gpt-5-mini` | File ops, simple bash, status checks, exploration |
+| **Standard** | `claude-sonnet-4.6`, `gpt-5.4` | Code edits, queries, doc work, default for agents |
+| **Premium** | `claude-opus-4.7`, `claude-opus-4.6` | Rubber-duck reviews, architecture, deep reasoning |
+| **Long-context** | `claude-opus-4.7-1m-internal` | Feeding 1M+ tokens (rare) |
+
+**Invocation**:
+```bash
+copilot --model claude-sonnet-4.6  # CLI: explicit flag
+# App: no flag override; use default (currently Opus 4.7 xhigh)
+```
+
+**Why**: Opus 4.7 1M is 10x more expensive than Sonnet. You burned 535M input tokens in 14 days on routine work.
+
+---
+
+### Plan Mode for Multi-Turn Work
+
+**Commit**: Before sessions expected to exceed ~10 turns, lead with `/plan` in both CLI and app.
+
+**Why**: 0 turns in 21 days used plan mode. Yet Release Tracker work spans 5,000+ total turns across multiple sessions — a 5-min upfront plan saves hours of rework.
+
+---
+
+### Tool Preference Order
+
+1. **Code intelligence** (if available) → LSP → **glob** → **grep** → bash
+2. **Data queries**: Kusto MCP → Trino MCP → bash
+3. **File reading**: **view** (never `cat` via bash)
+4. **File search**: **glob** (never `find`/`ls` via bash)
+5. **Content search**: **grep** (never `grep`/`rg` via bash)
+
+**Parallel execution**: Make 3+ independent reads/searches in one batch (they run in parallel).
+
+---
+
+## Project-Specific Overrides
+
+Projects can extend or override these rules in their `.github/copilot-instructions.md`. Example:
+
+```markdown
+# Project: Release Tracker
+
+Extends: ~/.copilot/instructions.unified.md
+
+## Custom Rules
+- Doc edits always go to pptx-generator skill (not manual edits in main session)
+- Queries use copilot-analytics agent (not direct Kusto calls)
+```
+
+---
+
+## Enforcement Recap
+
+| Rule | CLI | App |
+|---|---|---|
+| **50-turn HARD STOP** | Hook denies at ≥50 | Agent reads rule, refuses |
+| **Heredoc bloat** | Hook warns/denies | Agent avoids heredocs |
+| **Pagination spam** | Hook warns/denies | Agent batches via research agent |
+| **Bash-for-native** | Hook escalates warnings | Agent prefers native tools |
+| **Session scope** | N/A (user discipline) | Agent suggests split at turn 30 |
+| **Sub-agent delegation** | N/A (user discipline) | Agent suggests delegation |
+| **Default model** | `--model` flag | App default + project override |
+| **Plan mode** | `/plan` command | User discipline |
+
+---
+
+## Context Optimization (Active)
+
+- **Hooks**: On-demand MCPs in `mcp-on-demand.json` reduce startup context. Loaded via `mcp load <name>` + restart.
+- **Native tools**: Use `view`, `glob`, `grep` instead of bash equivalents — saves ~1/10th tokens per call.
+- **Parallelization**: 3 independent file reads = 1 turn (parallel), not 3 turns (sequential).
+
+---
+
+## Linked Files
+
+- **Hook implementation**: `~/.copilot/hooks/guardrails.sh`
+- **Hook config**: `~/.copilot/hooks/guardrails.json`
+- **Test suite**: `~/.copilot/hooks/test-guardrails.sh`
+- **Progress log**: `~/.copilot/progress/global.md`
+- **This file location**: `~/.copilot/instructions.unified.md`
+
+---
+
+## Symlink for CLI
+
+The CLI loads instructions from `~/.copilot/copilot-instructions.md`. Symlink this file:
+
+```bash
+ln -sf ~/.copilot/instructions.unified.md ~/.copilot/copilot-instructions.md
+```
+
+---
+
+## For App Projects
+
+Each project's `.github/copilot-instructions.md` should reference this unified file:
+
+```markdown
+# Project: [Name]
+
+Unified instructions: ~/.copilot/instructions.unified.md
+
+## Project-Specific Rules
+[Any overrides or extensions]
+```
+
+---
+
+Last updated: 2026-06-11
+Freeze until: 2026-06-15 (post-freeze edits to instructions.md only)
+<!-- <<< copilot-global-base <<< -->
