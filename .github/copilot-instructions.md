@@ -358,6 +358,8 @@ On the first tool-calling turn:
 
 Skipping any of these = violating the hard stops. The banner is non-negotiable visible proof you loaded context.
 
+> **Note — App Chat:** the App's chat surface can't read local files, so this read-the-files ritual is **CLI-only**. The App gets the same rules baked inline via `app-instructions.md` (its personal-instructions paste).
+
 ---
 
 ## Hard Limits (Non-Negotiable)
@@ -415,7 +417,7 @@ When a session feels like it's sprawling:
 2. **At turn 50**: Mandatory checkpoint + handoff. Next item = fresh session.
 3. **Tool to use**: `send_session_message` to delegate to a fresh session; keep main session focused.
 
-**Why**: 6 sessions in 14 days ran 50–147 turns with zero checkpoints. Splitting by deliverable keeps context clean and forces reflection.
+**Why**: Keeps context clean and forces reflection. (Sprawl is currently under control — max session ≈ 27 turns in the last 14 days — so the 50-turn stop is insurance, not a daily constraint.)
 
 ---
 
@@ -434,32 +436,22 @@ When a session feels like it's sprawling:
 | **global-expansion** | Market scoring, country expansion metrics |
 | **ghas-data-analyst** | GHAS/security data, funnel analysis |
 | **trending-repos-report** | Biweekly report generation |
-| **pptx-generator** | PowerPoint creation + editing |
 
-**Measurement**: In last 14 days, `task` tool = 1.3% of calls. Target: 8–12%.
+**Measurement**: `task` tool ≈ 0.7% of calls in the last 14 days — still low. Delegating matching missions keeps the main session lean and parallelizes work.
 
 **Why**: Agents have their own context windows. Delegating keeps your session lean and parallelizes work.
 
 ---
 
-### Default Model Routing
+### Model Routing (optional — user's choice)
 
-**Commit**: Use lowest-tier model that solves the task. Escalate only for complex reasoning.
+**Default**: use whatever model is selected for the session. **Do not auto-switch or downgrade the main session model** — picking the model is the user's call.
 
-| Tier | Models | Use For |
-|---|---|---|
-| **Fast/cheap** | `claude-haiku-4.5`, `gpt-5-mini` | File ops, simple bash, status checks, exploration |
-| **Standard** | `claude-sonnet-4.6`, `gpt-5.4` | Code edits, queries, doc work, default for agents |
-| **Premium** | `claude-opus-4.7`, `claude-opus-4.6` | Rubber-duck reviews, architecture, deep reasoning |
-| **Long-context** | `claude-opus-4.7-1m-internal` | Feeding 1M+ tokens (rare) |
+**Optional guidance** (only when the user has no preference): for `task` sub-agents, pass `model:` matching the agent's `recommended-model:`; default to a mid-tier model for non-trivial work to keep parallel work cheap. Suggest (don't impose) a cheaper model for clearly routine work.
 
-**Invocation**:
-```bash
-copilot --model claude-sonnet-4.6  # CLI: explicit flag
-# App: no flag override; use default (currently Opus 4.7 xhigh)
-```
+**Current models (2026-06)**: default `claude-opus-4.8`; also `claude-opus-4.7-xhigh`, `gpt-5.5`, `mai-code-1-flash-internal` (fast), `claude-sonnet-4.6` (standard), `claude-haiku-4.5` (cheap), `claude-opus-4.7-1m-internal` (1M context).
 
-**Why**: Opus 4.7 1M is 10x more expensive than Sonnet. You burned 535M input tokens in 14 days on routine work.
+**Invocation**: `copilot --model <id>`, or `/model` mid-session.
 
 ---
 
@@ -467,7 +459,7 @@ copilot --model claude-sonnet-4.6  # CLI: explicit flag
 
 **Commit**: Before sessions expected to exceed ~10 turns, lead with `/plan` in both CLI and app.
 
-**Why**: 0 turns in 21 days used plan mode. Yet Release Tracker work spans 5,000+ total turns across multiple sessions — a 5-min upfront plan saves hours of rework.
+**Why**: A 5-minute upfront plan saves hours of rework on long, multi-session work. (Plan mode is now actually in use — ~20× in the last 14 days.)
 
 ---
 
@@ -479,7 +471,15 @@ copilot --model claude-sonnet-4.6  # CLI: explicit flag
 4. **File search**: **glob** (never `find`/`ls` via bash)
 5. **Content search**: **grep** (never `grep`/`rg` via bash)
 
+**Enforced, not optional**: reach for `view`/`glob`/`grep` first; bash for `ls`/`find`/`cat`/`head`/`tail` is a last resort. (Recent usage: bash 853 vs glob 9 in 14d — the habit needs correcting.)
+
 **Parallel execution**: Make 3+ independent reads/searches in one batch (they run in parallel).
+
+---
+
+### Data & Report Defaults
+
+- **Default to the latest date.** When pulling data or building a scorecard/report, default to the most recent available period and include pending/blocked rows. Don't ship a stale or partial cut and wait to be asked for the latest.
 
 ---
 
@@ -509,7 +509,7 @@ Extends: ~/.copilot/instructions.unified.md
 | **Bash-for-native** | Hook escalates warnings | Agent prefers native tools |
 | **Session scope** | N/A (user discipline) | Agent suggests split at turn 30 |
 | **Sub-agent delegation** | N/A (user discipline) | Agent suggests delegation |
-| **Default model** | `--model` flag | App default + project override |
+| **Model routing** | optional — user's `--model`/`/model` choice | optional — user's choice |
 | **Plan mode** | `/plan` command | User discipline |
 
 ---
@@ -557,6 +557,6 @@ Unified instructions: ~/.copilot/instructions.unified.md
 
 ---
 
-Last updated: 2026-06-11
-Freeze until: 2026-06-15 (post-freeze edits to instructions.md only)
+Last updated: 2026-06-20 (fleet review: model routing made optional/user-led; stale stats refreshed; App-ritual scoped to CLI)
+Freeze: none (the 2026-06-15 freeze has expired)
 <!-- <<< copilot-global-base <<< -->
