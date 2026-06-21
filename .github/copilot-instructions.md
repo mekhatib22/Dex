@@ -514,14 +514,6 @@ Extends: ~/.copilot/instructions.unified.md
 
 ---
 
-## Context Optimization (Active)
-
-- **Hooks**: On-demand MCPs in `mcp-on-demand.json` reduce startup context. Loaded via `mcp load <name>` + restart.
-- **Native tools**: Use `view`, `glob`, `grep` instead of bash equivalents — saves ~1/10th tokens per call.
-- **Parallelization**: 3 independent file reads = 1 turn (parallel), not 3 turns (sequential).
-
----
-
 ## Linked Files
 
 - **Hook implementation**: `~/.copilot/hooks/guardrails.sh`
